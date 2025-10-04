@@ -1,0 +1,55 @@
+# --------------------------
+# Python
+# --------------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+
+# --------------------------
+# Virtual environments
+# --------------------------
+venv/
+.env/
+.env.*       # ignore all local env variations
+
+# --------------------------
+# IDE / Editor
+# --------------------------
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --------------------------
+# Docker
+# --------------------------
+*.db
+*.sql
+db_dump.sql         # Explicitly ignore dump
+docker-compose.override.yml
+**/Dockerfile.local
+**/docker-entrypoint-initdb.d/*
+**/db_data/
+**/pg_data/
+**/redis_data/
+
+# --------------------------
+# OS-specific
+# --------------------------
+.DS_Store
+Thumbs.db
+
+# --------------------------
+# Logs
+# --------------------------
+*.log
+logs/
+
+*db_dump.sql

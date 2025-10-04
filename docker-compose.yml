@@ -1,0 +1,69 @@
+version: "3.9"
+
+services:
+  ai_job_killer_api:
+    build: .
+    container_name: server
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+    volumes:
+      - ./logs:/app/logs
+      # - ./ESCO-dataset-v1.1.1:/app/data   # CSVs available to API if needed
+      - ./esco_data:/app/data   # CSVs available to API if needed
+      - ./cleaned_data:/app/cleaned_data       # output cleaned data ✅
+      - ./wait-for-db.sh:/app/wait-for-db.sh
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh /app/wait-for-db.sh
+      uvicorn app.main:app --host 0.0.0.0 --port 8000
+         --log-config app/core/logging_config.yaml
+
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Enable logging
+      POSTGRES_LOGGING_COLLECTOR: "on"
+      POSTGRES_LOG_DESTINATION: "stderr"
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./logs/db:/var/log/postgresql
+      - ./ESCO-dataset-v1.1.1:/docker-entrypoint-initdb.d/ESCO-dataset-v1.1.1
+      - ./01_init_schema.sql:/docker-entrypoint-initdb.d/01_init_schema.sql
+      - ./02_init_esco.sh:/docker-entrypoint-initdb.d/02_init_esco.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 2s
+      retries: 15
+      start_period: 5s
+
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --logfile /data/redis.log
+    volumes:
+      - redis_data:/data
+      - ./logs/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      retries: 15
+      start_period: 5s
+
+volumes:
+  pg_data:
+  redis_data:
