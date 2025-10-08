@@ -1,3 +1,4 @@
+# app/scoring/repository.py
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -16,13 +17,10 @@ def get_occupation_by_name(db: Session, name: str) -> Optional[Dict[str, Any]]:
         WHERE LOWER("preferredLabel") ILIKE LOWER(:name)
         LIMIT 1
     """)
-    result = db.execute(query, {"name": f"%{name}%"}).mappings()
-    row = result.first()
-
+    row = db.execute(query, {"name": f"%{name}%"}).mappings().first()
     if not row:
         logger.warning(f"No occupation found for name: {name}")
         return None
-
     logger.debug(f"Occupation found: {dict(row)}")
     return dict(row)
 
@@ -30,14 +28,16 @@ def get_occupation_by_name(db: Session, name: str) -> Optional[Dict[str, Any]]:
 def list_occupations_like(db: Session, query_str: str, limit: int = 10) -> List[Dict[str, Any]]:
     """Suggest occupations based on partial search query."""
     logger.info(f"Listing occupations like: {query_str}")
-    query = text("""
-        SELECT id, "preferredLabel" AS label, "conceptUri" AS uri
-        FROM occupations
-        WHERE LOWER("preferredLabel") ILIKE LOWER(:query)
-        ORDER BY "preferredLabel" ASC
-        LIMIT :limit
-    """)
-    rows = db.execute(query, {"query": f"%{query_str}%", "limit": limit}).mappings().all()
+    rows = db.execute(
+        text("""
+            SELECT id, "preferredLabel" AS label, "conceptUri" AS uri
+            FROM occupations
+            WHERE LOWER("preferredLabel") ILIKE LOWER(:query)
+            ORDER BY "preferredLabel" ASC
+            LIMIT :limit
+        """),
+        {"query": f"%{query_str}%", "limit": limit}
+    ).mappings().all()
     logger.debug(f"Found {len(rows)} occupations matching query '{query_str}'")
     return [dict(r) for r in rows]
 
@@ -49,19 +49,21 @@ def list_occupations_like(db: Session, query_str: str, limit: int = 10) -> List[
 def get_skills_for_occupation(db: Session, occupation_id: int) -> List[Dict[str, Any]]:
     """Fetch all skills linked to a given occupation."""
     logger.info(f"Fetching skills for occupation_id={occupation_id}")
-    query = text("""
-        SELECT s.id AS skill_id,
-               s."preferredLabel" AS skill_label,
-               s.definition,
-               s."skillType",
-               s."reuseLevel",
-               COALESCE(osr.importance, 1.0) AS importance,
-               osr."relationType"
-        FROM occupation_skill_relations osr
-        JOIN skills s ON s.id = osr.skill_id
-        WHERE osr.occupation_id = :occupation_id
-    """)
-    rows = db.execute(query, {"occupation_id": occupation_id}).mappings().all()
+    rows = db.execute(
+        text("""
+            SELECT s.id AS skill_id,
+                   s."preferredLabel" AS skill_label,
+                   s.definition,
+                   s."skillType",
+                   s."reuseLevel",
+                   COALESCE(osr.importance, 1.0) AS importance,
+                   osr."relationType"
+            FROM occupation_skill_relations osr
+            JOIN skills s ON s.id = osr.skill_id
+            WHERE osr.occupation_id = :occupation_id
+        """),
+        {"occupation_id": occupation_id}
+    ).mappings().all()
     logger.debug(f"Found {len(rows)} skills for occupation_id={occupation_id}")
     return [dict(r) for r in rows]
 
@@ -69,14 +71,16 @@ def get_skills_for_occupation(db: Session, occupation_id: int) -> List[Dict[str,
 def get_skill_by_name(db: Session, skill_name: str) -> Optional[Dict[str, Any]]:
     """Fetch skill by name (preferred or alt labels)."""
     logger.info(f"Fetching skill by name: {skill_name}")
-    query = text("""
-        SELECT id, "preferredLabel" AS skill_label, "conceptUri", definition
-        FROM skills
-        WHERE LOWER("preferredLabel") ILIKE LOWER(:skill_name)
-           OR LOWER("altLabels") ILIKE LOWER(:skill_name)
-        LIMIT 1
-    """)
-    row = db.execute(query, {"skill_name": f"%{skill_name}%"}).mappings().first()
+    row = db.execute(
+        text("""
+            SELECT id, "preferredLabel" AS skill_label, "conceptUri", definition
+            FROM skills
+            WHERE LOWER("preferredLabel") ILIKE LOWER(:skill_name)
+               OR LOWER("altLabels") ILIKE LOWER(:skill_name)
+            LIMIT 1
+        """),
+        {"skill_name": f"%{skill_name}%"}
+    ).mappings().first()
     if row:
         logger.debug(f"Skill found: {dict(row)}")
         return dict(row)
@@ -91,18 +95,19 @@ def get_skill_by_name(db: Session, skill_name: str) -> Optional[Dict[str, Any]]:
 def get_bucket_keywords(db: Session) -> List[Dict[str, Any]]:
     """Retrieve all keyword → bucket mappings."""
     logger.info("Fetching bucket keywords from DB")
-    query = text("""
-        SELECT bk.id AS keyword_id,
-               bk.keyword,
-               bk.language,
-               sb.id AS bucket_id,
-               sb.name AS bucket_name,
-               sb.default_weight
-        FROM bucket_keywords bk
-        JOIN scoring_buckets sb ON sb.id = bk.bucket_id
-        ORDER BY sb.id, bk.id
-    """)
-    rows = db.execute(query).mappings().all()
+    rows = db.execute(
+        text("""
+            SELECT bk.id AS keyword_id,
+                   bk.keyword,
+                   bk.language,
+                   sb.id AS bucket_id,
+                   sb.name AS bucket_name,
+                   sb.default_weight
+            FROM bucket_keywords bk
+            JOIN scoring_buckets sb ON sb.id = bk.bucket_id
+            ORDER BY sb.id, bk.id
+        """)
+    ).mappings().all()
     logger.debug(f"Fetched {len(rows)} bucket keywords")
     return [dict(r) for r in rows]
 
@@ -110,12 +115,13 @@ def get_bucket_keywords(db: Session) -> List[Dict[str, Any]]:
 def get_buckets_summary(db: Session) -> List[Dict[str, Any]]:
     """Get list of all scoring buckets with weights and short description."""
     logger.info("Fetching buckets summary")
-    query = text("""
-        SELECT id, name, description, default_weight, created_at
-        FROM scoring_buckets
-        ORDER BY id
-    """)
-    rows = db.execute(query).mappings().all()
+    rows = db.execute(
+        text("""
+            SELECT id, name, description, default_weight, created_at
+            FROM scoring_buckets
+            ORDER BY id
+        """)
+    ).mappings().all()
     logger.debug(f"Found {len(rows)} buckets")
     return [dict(r) for r in rows]
 
@@ -128,14 +134,15 @@ def get_skill_automation_scores(db: Session, skill_ids: List[int]) -> Dict[int, 
     if not skill_ids:
         logger.info("No skill_ids provided for automation score fetch")
         return {}
-
     logger.info(f"Fetching automation scores for {len(skill_ids)} skills")
-    query = text("""
-        SELECT skill_id, automation_score
-        FROM skill_automation_scores
-        WHERE skill_id = ANY(:skill_ids)
-    """)
-    rows = db.execute(query, {"skill_ids": skill_ids}).mappings().all()
+    rows = db.execute(
+        text("""
+            SELECT skill_id, automation_score
+            FROM skill_automation_scores
+            WHERE skill_id = ANY(:skill_ids)
+        """),
+        {"skill_ids": skill_ids}
+    ).mappings().all()
     logger.debug(f"Fetched automation scores for {len(rows)} skills")
     return {r["skill_id"]: float(r["automation_score"]) for r in rows}
 
@@ -148,7 +155,38 @@ def get_occupation_skill_importance(db: Session, occupation_id: int) -> Dict[int
             FROM occupation_skill_importance
             WHERE occupation_id = :occupation_id
         """),
-        {"occupation_id": occupation_id},
+        {"occupation_id": occupation_id}
     ).mappings().all()
     logger.debug(f"Found importance for {len(rows)} skills")
     return {r["skill_id"]: float(r["importance"]) for r in rows}
+
+
+# -------------------------------
+# Optional: precompute matched_buckets per skill for faster scoring
+# -------------------------------
+
+def get_skill_bucket_matches(db: Session, occupation_id: int) -> Dict[int, List[int]]:
+    """
+    Returns a mapping: skill_id -> list of bucket_ids it matches.
+    Useful for fast computation of matched_buckets in service.py.
+    """
+    logger.info(f"Precomputing skill bucket matches for occupation_id={occupation_id}")
+    rows = db.execute(
+        text("""
+            SELECT osr.skill_id, sb.id AS bucket_id
+            FROM occupation_skill_relations osr
+            JOIN skills s ON s.id = osr.skill_id
+            JOIN bucket_keywords bk ON LOWER(bk.keyword) = ANY (string_to_array(LOWER(s."preferredLabel") || ' ' || COALESCE(s.definition, ''), ' '))
+            JOIN scoring_buckets sb ON sb.id = bk.bucket_id
+            WHERE osr.occupation_id = :occupation_id
+        """),
+        {"occupation_id": occupation_id}
+    ).mappings().all()
+
+    mapping: Dict[int, List[int]] = {}
+    for r in rows:
+        sid = r["skill_id"]
+        bid = r["bucket_id"]
+        mapping.setdefault(sid, []).append(bid)
+    logger.debug(f"Computed matched_buckets for {len(mapping)} skills")
+    return mapping
