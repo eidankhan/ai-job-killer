@@ -1,12 +1,12 @@
 from fastapi import FastAPI
 from app.core.database import Base, engine
-from app.routers import auth as auth_router, bulk_import
-#occupation_router, skill_router, skillgroup_router, skill_hierarchy_router, occupation_skill_relations, importer, bulk_import
-#, admin_jobs, processor, importer
-# , jobs
+from app.routers import auth as auth_router, bulk_import, scoring_routes
 from app.core.logger import logger
 import logging   # <-- built-in Python logging
 from fastapi.middleware.cors import CORSMiddleware
+from app.scoring.router import router as scoring_router
+
+
 
 
 app = FastAPI(title="FastAPI User Auth Service")
@@ -39,6 +39,7 @@ app.include_router(auth_router.router)
 # app.include_router(skill_hierarchy_router.router)
 # app.include_router(occupation_skill_relations.router)
 app.include_router(bulk_import.router)
+app.include_router(scoring_router)
 
 
 @app.on_event("startup")

@@ -19,7 +19,7 @@ log_file_path = os.path.join(logs_dir, "api.log")
 # Create logger
 # ---------------------------
 logger = logging.getLogger("yt_transcript_api")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 # Formatter
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
