@@ -146,20 +146,66 @@ def get_buckets_summary(db: Session) -> List[Dict[str, Any]]:
 # -------------------------------
 
 def get_skill_automation_scores(db: Session, skill_ids: List[int]) -> Dict[int, float]:
-    if not skill_ids:
-        logger.info("No skill_ids provided for automation score fetch")
-        return {}
-    logger.info(f"Fetching automation scores for {len(skill_ids)} skills")
-    rows = db.execute(
-        text("""
-            SELECT skill_id, automation_score
-            FROM skill_automation_scores
-            WHERE skill_id = ANY(:skill_ids)
-        """),
-        {"skill_ids": skill_ids}
-    ).mappings().all()
-    logger.debug(f"Fetched automation scores for {len(rows)} skills")
-    return {r["skill_id"]: float(r["automation_score"]) for r in rows}
+    """
+    Dynamically compute automation risk per skill using hybrid model:
+    - Uses actual table data if present
+    - Falls back to bucket or metadata logic
+    """
+    query = text("""
+        WITH bucket_based AS (
+            SELECT sbm.skill_id,
+                   AVG(COALESCE(sbm.weight_override, sb.default_weight)) AS bucket_weight
+            FROM skill_bucket_map sbm
+            JOIN scoring_buckets sb ON sb.id = sbm.bucket_id
+            GROUP BY sbm.skill_id
+        ),
+        metadata_based AS (
+            SELECT s.id AS skill_id,
+                   (
+                       CASE
+                           WHEN s."skillType" ILIKE '%competence%' THEN 10
+                           WHEN s."skillType" ILIKE '%knowledge%' THEN -10
+                           ELSE 0
+                       END
+                       +
+                       CASE
+                           WHEN s."reuseLevel" ILIKE '%cross%' THEN -5
+                           ELSE 0
+                       END
+                   )
+                   *
+                   (
+                       CASE
+                           WHEN osr."relationType" = 'essential' THEN 1.2
+                           WHEN osr."relationType" = 'optional' THEN 0.8
+                           ELSE 1
+                       END
+                   )
+                   * COALESCE(osr.importance, 1.0)
+                   AS metadata_weight
+            FROM occupation_skill_relations osr
+            JOIN skills s ON s.id = osr.skill_id
+        ),
+        combined AS (
+            SELECT s.id AS skill_id,
+                   COALESCE(sas.automation_score,
+                            bucket_based.bucket_weight,
+                            metadata_based.metadata_weight,
+                            0) AS final_score
+            FROM skills s
+            LEFT JOIN skill_automation_scores sas ON sas.skill_id = s.id
+            LEFT JOIN bucket_based ON bucket_based.skill_id = s.id
+            LEFT JOIN metadata_based ON metadata_based.skill_id = s.id
+        )
+        SELECT skill_id,
+               ROUND(50 + (final_score * 100), 2) AS normalized_score
+        FROM combined
+        WHERE skill_id = ANY(:skill_ids)
+    """)
+
+    rows = db.execute(query, {"skill_ids": skill_ids}).mappings().all()
+    return {r["skill_id"]: float(r["normalized_score"]) for r in rows}
+
 
 
 def get_occupation_skill_importance(db: Session, occupation_id: int) -> Dict[int, float]:

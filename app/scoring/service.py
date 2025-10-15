@@ -12,27 +12,53 @@ ALPHA = 1.0  # how strongly "safe" offsets positive risk
 EPS = 1e-9
 
 
-def vulnerability_label(weight: float) -> str:
-    """Human-friendly vulnerability label for a single skill weight."""
-    if weight >= 20:
+def vulnerability_label_normalized(normalized: float) -> str:
+    """Map normalized contribution to a human-readable label with adjusted thresholds."""
+    if normalized >= 0.9:
+        return "Very High"
+    elif normalized >= 0.7:
         return "High"
-    if weight >= 10:
-        return "Medium"
-    if weight > 0:
+    elif normalized >= 0.4:
+        return "Moderate"
+    elif normalized > 0:
         return "Low"
-    return "Safe"
+    elif normalized <= 0.2:
+        return "Safe"
+    else:
+        return "Neutral"
 
 
-def compute_risk_from_contribs(contribs: List[float], alpha: float = ALPHA) -> float:
-    """Compute a 0..100 risk score using positive/negative separation."""
-    positive = sum(c for c in contribs if c > 0)
-    negative = sum(-c for c in contribs if c < 0)
-    denom = positive + alpha * negative + EPS
-    if denom <= 0:
-        return 0.0
-    score = 100.0 * (positive / denom)
-    logger.debug(f"Computed risk from contribs: positive={positive}, negative={negative}, score={score}")
-    return max(0.0, min(100.0, score))
+def vuln_factor_from_label(label: str) -> float:
+    """Assign numeric vulnerability factor based on label (0.0..1.0)."""
+    mapping = {
+        "Very High": 1.0,
+        "High": 0.75,
+        "Moderate": 0.5,
+        "Low": 0.25,
+        "Safe": 0.0,
+        "Neutral": 0.5,
+    }
+    return mapping.get(label, 0.5)
+
+
+def compute_risk_from_contribs_normalized(per_skill_items: List[dict]) -> float:
+    """Compute 0..100 risk score using normalized contributions and vuln_factor."""
+    if not per_skill_items:
+        return 50.0  # neutral if no skills
+
+    raw_values = [s["raw_contrib"] for s in per_skill_items]
+    min_val = min(raw_values)
+    max_val = max(raw_values)
+    range_val = max_val - min_val + 1e-8  # avoid division by zero
+
+    for item in per_skill_items:
+        normalized = (item["raw_contrib"] - min_val) / range_val
+        item["normalized_contrib"] = normalized
+        item["vulnerability"] = vulnerability_label_normalized(normalized)
+        item["vuln_factor"] = vuln_factor_from_label(item["vulnerability"])
+
+    risk_score = sum(item["normalized_contrib"] * item["vuln_factor"] for item in per_skill_items)
+    return max(0.0, min(100.0, risk_score * 100))
 
 
 class SimpleDbDrivenScorer:
@@ -76,11 +102,14 @@ class SimpleDbDrivenScorer:
             raise ValueError(f"Occupation matching '{occupation_name}' not found")
         return self.score_by_occupation_id(db, int(occ["id"]))
 
-    def score_by_occupation_id(self, db: Session, occupation_id: int) -> Dict[str, Any]:
-        """Compute score given occupation_id using DB-driven skill weights."""
+
+    def score_by_occupation_id(
+        self, db: Session, occupation_id: int, sort_by: str = "normalized_contrib"
+    ) -> dict:
+        """Compute risk score for an occupation using normalized contributions and vulnerability factors."""
         logger.info(f"Scoring occupation id={occupation_id}")
 
-        # fetch occupation label
+        # Fetch occupation label
         occ_row = db.execute(
             text('SELECT "preferredLabel" AS label FROM occupations WHERE id = :occupation_id'),
             {"occupation_id": occupation_id}
@@ -90,7 +119,7 @@ class SimpleDbDrivenScorer:
         occupation_label = occ_row["label"] or f"occupation:{occupation_id}"
         logger.debug(f"Occupation label: {occupation_label}")
 
-        # fetch skills + importance (directly from occupation_skill_relations)
+        # Fetch skills
         skills = repo.get_skills_for_occupation(db, occupation_id)
         if not skills:
             logger.info(f"No skills for occupation id={occupation_id}, returning neutral score")
@@ -105,34 +134,32 @@ class SimpleDbDrivenScorer:
                 "matched_buckets": {},
             }
 
-        # automation & buckets
         skill_ids = [s["skill_id"] for s in skills]
         automation_map = repo.get_skill_automation_scores(db, skill_ids)
         buckets = self._load_bucket_keywords(db)
         skill_bucket_map = repo.get_skill_bucket_matches(db, occupation_id)
 
-        per_skill_items: List[Dict[str, Any]] = []
-        contribs: List[float] = []
-        matched_buckets_counts: Dict[int, int] = {}
+        per_skill_items: list[dict] = []
+        matched_buckets_counts: dict[int, int] = {}
 
+        # Step 1: Compute raw contributions
+        raw_contribs: list[float] = []
         for s in skills:
             sid = int(s["skill_id"])
             label = (s.get("skill_label") or "").strip() or f"skill:{sid}"
             definition = s.get("definition") or ""
             importance = float(s.get("importance") or 1.0)
 
-            chosen_weight: float = DEFAULT_FALLBACK_WEIGHT
+            chosen_weight = DEFAULT_FALLBACK_WEIGHT
             mapping_source = "default"
             weight_source = "default"
             chosen_bucket_id = None
 
-            # 1️⃣ precomputed automation score
             if sid in automation_map:
                 chosen_weight = float(automation_map[sid])
                 mapping_source = "precomputed_score"
                 weight_source = "automation_score"
             else:
-                # 2️⃣ keyword bucket matches
                 matched_buckets = skill_bucket_map.get(sid, [])
                 if matched_buckets:
                     chosen_bucket_id = matched_buckets[0]
@@ -144,7 +171,7 @@ class SimpleDbDrivenScorer:
                         matched_buckets_counts[bid] = matched_buckets_counts.get(bid, 0) + 1
 
             contrib = chosen_weight * importance
-            contribs.append(contrib)
+            raw_contribs.append(contrib)
 
             per_skill_items.append({
                 "skill_id": sid,
@@ -155,17 +182,35 @@ class SimpleDbDrivenScorer:
                 "mapping_source": mapping_source,
                 "weight_source": weight_source,
                 "bucket_id": int(chosen_bucket_id) if chosen_bucket_id is not None else None,
-                "contrib": contrib,
-                "vulnerability": vulnerability_label(chosen_weight),
+                "raw_contrib": contrib,
+                "weighted_contrib": contrib,  # optional: for table output
             })
 
-        # risk score and explanation
-        risk_score = compute_risk_from_contribs(contribs)
-        level = "Green" if risk_score < 30 else "Yellow" if risk_score <= 70 else "Red"
+        # Step 2: Normalize contributions
+        min_contrib = min(raw_contribs)
+        max_contrib = max(raw_contribs)
+        range_contrib = max_contrib - min_contrib + 1e-8  # prevent zero division
 
-        sorted_by_contrib = sorted(per_skill_items, key=lambda x: x["contrib"], reverse=True)
-        top_vulnerable = [p["skill_label"] for p in sorted_by_contrib if p["contrib"] > 0][:3]
-        top_safe = [p["skill_label"] for p in sorted_by_contrib if p["contrib"] <= 0][:3]
+        for item in per_skill_items:
+            normalized = (item["raw_contrib"] - min_contrib) / range_contrib
+            item["normalized_contrib"] = normalized
+            item["vulnerability"] = vulnerability_label_normalized(normalized)
+
+        # Step 3: Compute overall risk
+        risk_score = compute_risk_from_contribs_normalized(per_skill_items)
+        level = (
+            "Green" if risk_score < 30
+            else "Yellow" if risk_score <= 70
+            else "Red"
+        )
+
+        # Step 4: Sort per skill
+        if sort_by in {"raw_contrib", "normalized_contrib", "weight", "importance"}:
+            per_skill_items.sort(key=lambda x: x[sort_by], reverse=True)
+
+        # Step 5: Build explanation with top 5 vulnerable and top 5 safe skills
+        top_vulnerable = [p["skill_label"] for p in per_skill_items if p["normalized_contrib"] > 0.6][:5]
+        top_safe = [p["skill_label"] for p in per_skill_items if p["normalized_contrib"] <= 0.3][:5]
 
         explanation_parts = []
         if top_vulnerable:

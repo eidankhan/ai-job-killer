@@ -12,6 +12,7 @@ from app.scoring.router import router as scoring_router
 app = FastAPI(title="FastAPI User Auth Service")
 
 origins = [
+    "*",
     "http://localhost:3000",  # your Next.js dev URL
     "https://ai-job-killer.dev", # your production frontend
 ]
