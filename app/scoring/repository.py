@@ -47,26 +47,41 @@ def list_occupations_like(db: Session, query_str: str, limit: int = 10) -> List[
 # -------------------------------
 
 def get_skills_for_occupation(db: Session, occupation_id: int) -> List[Dict[str, Any]]:
-    """Fetch all skills linked to a given occupation."""
+    """
+    Fetch all skills linked to a given occupation, including their importance
+    directly from occupation_skill_relations. Automatically normalizes importance
+    if missing or invalid.
+    """
     logger.info(f"Fetching skills for occupation_id={occupation_id}")
-    rows = db.execute(
-        text("""
-            SELECT s.id AS skill_id,
-                   s."preferredLabel" AS skill_label,
-                   s.definition,
-                   s."skillType",
-                   s."reuseLevel",
-                   COALESCE(osr.importance, 1.0) AS importance,
-                   osr."relationType"
-            FROM occupation_skill_relations osr
-            JOIN skills s ON s.id = osr.skill_id
-            WHERE osr.occupation_id = :occupation_id
-        """),
-        {"occupation_id": occupation_id}
-    ).mappings().all()
-    logger.debug(f"Found {len(rows)} skills for occupation_id={occupation_id}")
-    return [dict(r) for r in rows]
 
+    query = text("""
+        SELECT 
+            s.id AS skill_id,
+            s."preferredLabel" AS skill_label,
+            s.definition,
+            s."skillType",
+            s."reuseLevel",
+            COALESCE(NULLIF(osr.importance, 0), 1.0) AS importance,  -- fallback to 1.0
+            osr."relationType",
+            osr."skillType" AS relation_skill_type
+        FROM occupation_skill_relations osr
+        JOIN skills s ON s.id = osr.skill_id
+        WHERE osr.occupation_id = :occupation_id
+    """)
+
+    rows = db.execute(query, {"occupation_id": occupation_id}).mappings().all()
+
+    logger.debug(f"Found {len(rows)} skills for occupation_id={occupation_id}")
+
+    # Extra safety: normalize and clean data
+    cleaned_rows = []
+    for r in rows:
+        skill = dict(r)
+        skill["importance"] = float(skill.get("importance") or 1.0)
+        skill["skill_label"] = (skill.get("skill_label") or "").strip()
+        cleaned_rows.append(skill)
+
+    return cleaned_rows
 
 def get_skill_by_name(db: Session, skill_name: str) -> Optional[Dict[str, Any]]:
     """Fetch skill by name (preferred or alt labels)."""

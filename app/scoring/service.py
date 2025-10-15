@@ -90,7 +90,7 @@ class SimpleDbDrivenScorer:
         occupation_label = occ_row["label"] or f"occupation:{occupation_id}"
         logger.debug(f"Occupation label: {occupation_label}")
 
-        # fetch skills
+        # fetch skills + importance (directly from occupation_skill_relations)
         skills = repo.get_skills_for_occupation(db, occupation_id)
         if not skills:
             logger.info(f"No skills for occupation id={occupation_id}, returning neutral score")
@@ -105,13 +105,10 @@ class SimpleDbDrivenScorer:
                 "matched_buckets": {},
             }
 
-        # importance & automation
-        importance_map = repo.get_occupation_skill_importance(db, occupation_id)
+        # automation & buckets
         skill_ids = [s["skill_id"] for s in skills]
         automation_map = repo.get_skill_automation_scores(db, skill_ids)
         buckets = self._load_bucket_keywords(db)
-
-        # precompute skill -> matched buckets
         skill_bucket_map = repo.get_skill_bucket_matches(db, occupation_id)
 
         per_skill_items: List[Dict[str, Any]] = []
@@ -122,7 +119,7 @@ class SimpleDbDrivenScorer:
             sid = int(s["skill_id"])
             label = (s.get("skill_label") or "").strip() or f"skill:{sid}"
             definition = s.get("definition") or ""
-            importance = float(s.get("importance") or importance_map.get(sid) or 1.0)
+            importance = float(s.get("importance") or 1.0)
 
             chosen_weight: float = DEFAULT_FALLBACK_WEIGHT
             mapping_source = "default"
@@ -135,7 +132,7 @@ class SimpleDbDrivenScorer:
                 mapping_source = "precomputed_score"
                 weight_source = "automation_score"
             else:
-                # 2️⃣ bucket keyword matches
+                # 2️⃣ keyword bucket matches
                 matched_buckets = skill_bucket_map.get(sid, [])
                 if matched_buckets:
                     chosen_bucket_id = matched_buckets[0]
@@ -162,10 +159,10 @@ class SimpleDbDrivenScorer:
                 "vulnerability": vulnerability_label(chosen_weight),
             })
 
+        # risk score and explanation
         risk_score = compute_risk_from_contribs(contribs)
         level = "Green" if risk_score < 30 else "Yellow" if risk_score <= 70 else "Red"
 
-        # top vulnerable & safe skills
         sorted_by_contrib = sorted(per_skill_items, key=lambda x: x["contrib"], reverse=True)
         top_vulnerable = [p["skill_label"] for p in sorted_by_contrib if p["contrib"] > 0][:3]
         top_safe = [p["skill_label"] for p in sorted_by_contrib if p["contrib"] <= 0][:3]
