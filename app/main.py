@@ -11,18 +11,21 @@ from app.scoring.router import router as scoring_router
 
 app = FastAPI(title="FastAPI User Auth Service")
 
+# List of origins that are allowed to make requests
+# For development, you can allow all with "*" or be specific
 origins = [
-    "*",
-    "http://localhost:3000",  # your Next.js dev URL
-    "https://ai-job-killer.dev", # your production frontend
+    "http://localhost",
+    "http://localhost:8080",
+    "http://127.0.0.1:5500",  # Common for VS Code Live Server
+    "null", # Allows 'file://' origins (for opening index.html directly)
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,          # or ["*"] for all origins
+    allow_origins=origins,  # Allows specified origins
     allow_credentials=True,
-    allow_methods=["*"],            # <-- important: allows OPTIONS, POST, etc.
-    allow_headers=["*"],            # <-- important: allows custom headers
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
 )
 
 # Create tables on startup

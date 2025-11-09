@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from typing import Any, Dict
+from typing import Any, Dict, List
 from app.core.logger import logger
 from app.core.database import get_db
-from app.scoring.service import SimpleDbDrivenScorer
+from app.scoring.service import SimpleDbDrivenScorer, search_occupations
 
 router = APIRouter(prefix="/scoring", tags=["Scoring"])
 scorer = SimpleDbDrivenScorer()
@@ -73,3 +73,15 @@ def get_bucket_keywords(
     except Exception as e:
         logger.error(f"Unexpected error occurred while loading bucket keywords: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    
+@router.get("/search", response_model=List[Dict[str, str]])
+def search_occupations_endpoint(
+    query: str = Query(..., min_length=1),
+    db: Session = Depends(get_db)
+):
+    """
+    API endpoint to search occupations for autocomplete.
+    """
+    results = search_occupations(db, query)
+    return results
+
