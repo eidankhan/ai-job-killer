@@ -1,0 +1,247 @@
+/* analyzer.css */
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: #f4f7fb;
+    color: #333;
+}
+
+.app-title {
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.app-subtitle {
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+/* === The New Result Card === */
+.result-card {
+    /* Adding new color classes for JS to hook into */
+    background: linear-gradient(135deg, #0078ff 0%, #005fcc 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-top: 2.5rem;
+    text-align: center;
+    transition: background 0.3s ease;
+}
+
+/* "Brutally honest" card colors */
+.result-card.card-low {
+    background: linear-gradient(135deg, #27ae60 0%, #219150 100%);
+}
+
+.result-card.card-medium {
+    background: linear-gradient(135deg, #f2994a 0%, #e85a1a 100%);
+}
+
+.result-card.card-high {
+    background: linear-gradient(135deg, #d93025 0%, #b52018 100%);
+}
+
+.result-card .card-title {
+    font-weight: 600;
+    font-size: 1.5rem;
+    opacity: 0.9;
+}
+
+.result-card .card-score {
+    font-weight: 900;
+    font-size: 5.5rem;
+    line-height: 1.1;
+    margin: 0.5rem 0;
+}
+
+.result-card .card-verdict {
+    font-weight: 700;
+    font-size: 1.25rem;
+    background-color: rgba(0, 0, 0, 0.15);
+    display: inline-block;
+    padding: 0.25rem 1rem;
+    border-radius: 20px;
+    margin-bottom: 1rem;
+}
+
+.result-card .card-explanation {
+    font-size: 0.95rem;
+    opacity: 0.9;
+    max-width: 500px;
+    margin: 0 auto 1.5rem auto;
+}
+
+/* === The New Action Plan === */
+.action-plan {
+    margin-top: 3rem;
+}
+
+.action-title {
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+}
+
+.action-card {
+    border: none;
+    border-radius: 12px;
+}
+
+.action-card .card-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+}
+
+.action-card.card-safe {
+    border-top: 4px solid #27ae60;
+}
+
+.action-card.card-risk {
+    border-top: 4px solid #d93025;
+}
+
+/* === NEW: Container for the skill tags === */
+.skills-list-container {
+    /* This is the key part for the scroller */
+    max-height: 300px;
+    /* You can change this value */
+    overflow-y: auto;
+    /* Adds scroller only when needed */
+
+    display: flex;
+    flex-wrap: wrap;
+    /* Tags will wrap nicely */
+    gap: 0.5rem;
+    /* Spacing between tags */
+    padding: 0.5rem;
+    /* A bit of space inside */
+    background-color: #f8f9fa;
+    /* Light background */
+    border-radius: 8px;
+    flex-grow: 1;
+    /* Makes card take full height */
+}
+
+/* === NEW: Individual skill tag style === */
+.skill-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    /* Pill shape */
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: 1px solid #ddd;
+}
+
+.skill-tag .bi {
+    margin-right: 0.4rem;
+    font-size: 0.9rem;
+}
+
+/* Color-coded tags */
+.skill-tag.skill-safe {
+    background-color: #e6f7ec;
+    border-color: #b7e1c1;
+    color: #0f5132;
+}
+
+.skill-tag.skill-risk {
+    background-color: #fdebe9;
+    border-color: #f5c6cb;
+    color: #842029;
+}
+
+
+/* === Autocomplete/Table Styles (Unchanged) === */
+.search-container {
+    position: relative;
+}
+
+.autocomplete-list {
+    border: 1px solid #ccc;
+    border-top: none;
+    max-height: 220px;
+    overflow-y: auto;
+    background: #fff;
+    position: absolute;
+    width: 100%;
+    z-index: 10;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.autocomplete-item {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.hover {
+    background: #f0f0f0;
+}
+
+/* The original result wrapper, now used for details */
+.result {
+    margin-top: 30px;
+    background: #fff;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* === NEW: Technical Breakdown Scroller === */
+.table-container {
+    max-height: 350px;
+    /* You can change this value */
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+/* Make table header sticky for better scrolling UX */
+.result table {
+    margin-top: 0;
+    /* Handled by container */
+}
+
+.result th {
+    position: sticky;
+    /* Stick the header to the top */
+    top: 0;
+    z-index: 2;
+    background-color: #f5f6fa;
+    /* Ensure it has a background */
+}
+
+/* ... (Badge styles are unchanged) ... */
+.badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9em;
+    color: #fff;
+}
+
+.very-high {
+    background: #d93025;
+}
+
+.high {
+    background: #f2994a;
+}
+
+.moderate {
+    background: #f2c94c;
+    color: #333;
+}
+
+.low {
+    background: #6fcf97;
+}
+
+.safe {
+    background: #27ae60;
+}

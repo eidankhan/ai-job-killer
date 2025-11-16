@@ -1,0 +1,63 @@
+/* auth.css */
+
+.auth-body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f4f7fb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1rem;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 480px;
+    /* Constrains the card width */
+}
+
+.auth-card {
+    border: none;
+    border-radius: 12px;
+    /* Softer corners */
+    background: #ffffff;
+}
+
+.auth-title {
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+/* Style for the floating labels */
+.form-floating>.form-control {
+    height: 58px;
+    /* Taller, more mobile-friendly inputs */
+    padding-top: 1.625rem;
+    padding-bottom: 0.625rem;
+    line-height: 1.25;
+}
+
+.form-floating>label {
+    padding-top: 0.825rem;
+    /* Adjust label position */
+}
+
+/* Primary button style */
+.auth-btn {
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+/* Helper/bottom links */
+.auth-link {
+    font-size: 0.9rem;
+    color: #0078ff;
+    text-decoration: none;
+}
+
+.auth-link:hover {
+    text-decoration: underline;
+}
