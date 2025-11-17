@@ -14,7 +14,8 @@
 <body class="auth-body">
 
     <div class="auth-container">
-        <div class="auth-card shadow-sm">
+
+        <div id="signup-card" class="auth-card shadow-sm">
             <div class="card-body p-4 p-md-5">
 
                 <h1 class="auth-title h3 mb-3 text-center">
@@ -49,7 +50,7 @@
                         <label for="signup-password-confirm">Confirm Password</label>
                     </div>
 
-                    <div id="auth-alert" class="alert" style="display: none;"></div>
+                    <div id="signup-alert" class="alert" style="display: none;"></div>
 
                     <div class="d-grid">
                         <button type="submit" class="btn btn-primary btn-lg auth-btn" id="signup-button">
@@ -66,15 +67,55 @@
                         <a href="login.html" class="auth-link fw-bold">Log In</a>
                     </p>
                 </div>
-
             </div>
         </div>
+
+        <div id="verify-card" class="auth-card shadow-sm" style="display: none;">
+            <div class="card-body p-4 p-md-5">
+
+                <h1 class="auth-title h3 mb-3 text-center">
+                    Check Your Email
+                </h1>
+                <p class="auth-subtitle text-center text-muted mb-4">
+                    We sent a 6-digit verification code to
+                    <strong id="user-email-placeholder">your-email@example.com</strong>.
+                </p>
+
+                <form id="verify-form">
+
+                    <div class="form-floating mb-4">
+                        <input type="text" class="form-control" id="verify-code" placeholder="123456" required
+                            maxlength="6">
+                        <label for="verify-code">Verification Code</label>
+                    </div>
+
+                    <div id="verify-alert" class="alert" style="display: none;"></div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg auth-btn" id="verify-button">
+                            <span class="btn-text">Verify Account</span>
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"
+                                style="display: none;"></span>
+                        </button>
+                    </div>
+                </form>
+
+                <div class="text-center mt-4 pt-3 border-top">
+                    <p class="text-muted mb-0">
+                        Didn't get a code?
+                        <a href="#" class="auth-link fw-bold" id="resend-link">Resend</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
     <script src="config.js"></script>
     <script src="auth-ui.js"></script>
+
     <script src="signup.js"></script>
 
 </body>

@@ -2,12 +2,25 @@
 
 $(document).ready(function () {
 
-    // --- SETUP ---
-    // Initialize the UI helpers for this page
-    const ui = setupAuthUI('#signup-button', '#auth-alert');
+    // --- STATE ---
+    // We need to store the email from step 1 to use it in step 2
+    let userEmail = '';
 
-    // --- EVENT LISTENER ---
-    $('#signup-form').on('submit', function (e) {
+    // --- SETUP ---
+    // We need two separate UI helpers, one for each form
+    const signupUI = setupAuthUI('#signup-button', '#signup-alert');
+    const verifyUI = setupAuthUI('#verify-button', '#verify-alert');
+
+    // --- EVENT LISTENERS ---
+    $('#signup-form').on('submit', handleSignup);
+    $('#verify-form').on('submit', handleVerify);
+    $(document).on('click', '#resend-link', handleResend); // For the resend link
+
+
+    /**
+     * Handles STEP 1: Creating the account
+     */
+    function handleSignup(e) {
         e.preventDefault();
 
         const name = $('#signup-name').val();
@@ -17,16 +30,19 @@ $(document).ready(function () {
 
         // 1. Client-side validation
         if (password !== passwordConfirm) {
-            ui.showError('Passwords do not match.');
+            signupUI.showError('Passwords do not match.');
             return;
         }
 
         // 2. Show loading state
-        ui.showLoading();
+        signupUI.showLoading();
 
-        // 3. Make API call
+        // 3. Store the email for the next step
+        userEmail = email;
+
+        // 4. Make API call
         $.ajax({
-            url: `${API_BASE_URL}/auth/signup`, // Using global config
+            url: `${API_BASE_URL}/auth/signup`,
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
@@ -36,20 +52,16 @@ $(document).ready(function () {
             }),
 
             success: function (data) {
-                // 4a. On Success: Show message and redirect to login
-                ui.hideLoading();
-                ui.showSuccess('Account created! Please log in.');
-
-                $('#signup-form')[0].reset();
-
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000); // 2-second delay
+                // 5a. On Success: Hide signup card, show verify card
+                signupUI.hideLoading();
+                $('#user-email-placeholder').text(userEmail); // Update email placeholder
+                $('#signup-card').hide();
+                $('#verify-card').fadeIn();
             },
 
             error: function (xhr) {
-                // 4b. On Error: Hide loading and show error
-                ui.hideLoading();
+                // 5b. On Error: Hide loading and show error
+                signupUI.hideLoading();
                 let errorMsg = 'An error occurred during signup.';
                 if (xhr.responseJSON && xhr.responseJSON.detail) {
                     if (typeof xhr.responseJSON.detail === 'string') {
@@ -58,9 +70,95 @@ $(document).ready(function () {
                         errorMsg = xhr.responseJSON.detail[0].msg;
                     }
                 }
-                ui.showError(errorMsg);
+                signupUI.showError(errorMsg);
             }
         });
-    });
+    }
+
+    /**
+     * Handles STEP 2: Verifying the code
+     */
+    function handleVerify(e) {
+        e.preventDefault();
+
+        const code = $('#verify-code').val();
+
+        if (!userEmail) {
+            verifyUI.showError("Email not found. Please refresh and try again.");
+            return;
+        }
+
+        // 1. Show loading state
+        verifyUI.showLoading();
+
+        // 2. Make API call
+        $.ajax({
+            url: `${API_BASE_URL}/auth/verify-email`,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                email: userEmail,
+                code: code
+            }),
+
+            success: function (data) {
+                // 3a. On Success: Show success and redirect to login
+                verifyUI.hideLoading();
+                verifyUI.showSuccess('Account verified! Redirecting to login...');
+
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000); // 2-second delay
+            },
+
+            error: function (xhr) {
+                // 3b. On Error: Hide loading and show error
+                verifyUI.hideLoading();
+                let errorMsg = 'Invalid verification code.';
+                if (xhr.responseJSON && xhr.responseJSON.detail) {
+                    if (typeof xhr.responseJSON.detail === 'string') {
+                        errorMsg = xhr.responseJSON.detail;
+                    }
+                }
+                verifyUI.showError(errorMsg);
+            }
+        });
+    }
+
+    /**
+     * Handles the "Resend Code" link
+     */
+    function handleResend(e) {
+        e.preventDefault();
+
+        if (!userEmail) {
+            verifyUI.showError("Email not found. Please refresh and try again.");
+            return;
+        }
+
+        // Disable link to prevent spam
+        const $resendLink = $('#resend-link');
+        $resendLink.text('Sending...').css('pointer-events', 'none');
+
+        $.ajax({
+            url: `${API_BASE_URL}/auth/resend-verification-code`,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ email: userEmail }),
+
+            success: function () {
+                verifyUI.showSuccess('A new code has been sent.');
+                // Re-enable link after a delay
+                setTimeout(() => {
+                    $resendLink.text('Resend').css('pointer-events', 'auto');
+                }, 10000); // 10-second cooldown
+            },
+            error: function () {
+                verifyUI.showError('Could not send a new code. Please try again in a moment.');
+                // Re-enable link
+                $resendLink.text('Resend').css('pointer-events', 'auto');
+            }
+        });
+    }
 
 });
