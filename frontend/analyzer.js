@@ -96,10 +96,67 @@ $(document).ready(function () {
                 $(e.target).text(text);
             });
 
-            $('#share-button').on('click', () => {
-                alert('Sharing to social media... (feature coming soon!)');
+            // $('#share-button').on('click', () => {
+            //     alert('Sharing to social media... (feature coming soon!)');
+            // });
+
+            // --- NEW PDF LISTENER ---
+            $('#download-pdf-button').on('click', (e) => {
+                e.preventDefault(); // Stop form submit just in case
+                this.generatePDF();
             });
         },
+
+        // --- PDF GENERATION FUNCTION ---
+        generatePDF: function () {
+            // Create a temporary container for PDF content
+            const $content = $('<div>').addClass('p-4 bg-white');
+
+            // 1. Add Title
+            $content.append('<h2 style="text-align:center; font-family:sans-serif; margin-bottom: 20px;">AI Job Risk Report</h2>');
+
+            // 2. Clone Result Card
+            const $clonedCard = $('#result-card').clone().show();
+            // Remove buttons from PDF version
+            $clonedCard.find('button').remove();
+            $clonedCard.css({ 'margin-top': '0', 'box-shadow': 'none' });
+            $content.append($clonedCard);
+
+            // 3. Clone Action Plan
+            const $clonedPlan = $('#action-plan').clone().show();
+            $clonedPlan.find('a').remove(); // Remove "See Technical Breakdown" link
+            $clonedPlan.css('margin-top', '20px');
+            // IMPORTANT: Expand scrollable areas so all content shows in PDF
+            $clonedPlan.find('.skills-list-container').css({
+                'max-height': 'none',
+                'overflow': 'visible'
+            });
+            $content.append($clonedPlan);
+
+            // 4. Clone Technical Breakdown (Table)
+            const $clonedTable = $('#output-details').clone().show();
+            $clonedTable.css('margin-top', '20px');
+            // IMPORTANT: Expand table scroller
+            $clonedTable.find('.table-container').css({
+                'max-height': 'none',
+                'overflow': 'visible',
+                'border': 'none'
+            });
+            $content.append($clonedTable);
+
+            // 5. Generate PDF
+            const opt = {
+                margin: [10, 10, 10, 10],
+                filename: `AI-Risk-Report-${Date.now()}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            html2pdf().set(opt).from($content[0]).save();
+        },
+
         handleKeyup: async function (e) {
             const query = this.$jobInput.val().trim();
             if (["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) {
