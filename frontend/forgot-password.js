@@ -1,5 +1,4 @@
 // --- 1. HARDCODED CONFIG (Standalone) ---
-const API_BASE_URL = window.APP_CONFIG.API_BASE_URL;
 
 // --- 2. HARDCODED AUTH-UI HELPER (Standalone) ---
 function setupAuthUI(buttonSelector, alertSelector) {
@@ -31,6 +30,8 @@ function setupAuthUI(buttonSelector, alertSelector) {
 
 // --- 3. PAGE LOGIC (This runs after the page loads) ---
 $(document).ready(function () {
+
+    const API_BASE_URL = window.APP_CONFIG.API_BASE_URL;
 
     // --- STATE ---
     let userEmail = '';

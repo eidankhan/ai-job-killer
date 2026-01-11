@@ -2,6 +2,8 @@
 
 $(document).ready(function () {
 
+    const API_BASE_URL = window.APP_CONFIG.API_BASE_URL;
+
     // --- SETUP ---
     // Initialize the UI helpers for this page
     const ui = setupAuthUI('#login-button', '#auth-alert');

@@ -2,6 +2,8 @@
 
 $(document).ready(function () {
 
+    const API_BASE_URL = window.APP_CONFIG.API_BASE_URL;
+
     // --- STATE ---
     // We need to store the email from step 1 to use it in step 2
     let userEmail = '';
