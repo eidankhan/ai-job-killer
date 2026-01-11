@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.core.database import Base, engine
-from app.routers import auth as auth_router, bulk_import, scoring_routes
+from app.routers import admin_ops, auth as auth_router, bulk_import, data_loaders, occupation_router, occupation_skill_relations, scoring_routes, skill_hierarchy_router, skill_router, skillgroup_router
 from app.core.logger import logger
 import logging   # <-- built-in Python logging
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,14 +36,16 @@ app.include_router(auth_router.router)
 # app.include_router(admin_jobs.router)
 # app.include_router(processor.router)
 # app.include_router(importer.router)
-# # app.include_router(jobs.router)
-# app.include_router(occupation_router.router)
-# app.include_router(skill_router.router)
-# app.include_router(skillgroup_router.router)
-# app.include_router(skill_hierarchy_router.router)
-# app.include_router(occupation_skill_relations.router)
+# app.include_router(jobs.router)
+app.include_router(occupation_router.router)
+app.include_router(skill_router.router)
+app.include_router(skillgroup_router.router)
+app.include_router(skill_hierarchy_router.router)
+app.include_router(occupation_skill_relations.router)
 app.include_router(bulk_import.router)
 app.include_router(scoring_router)
+app.include_router(admin_ops.router)
+app.include_router(data_loaders.router)
 
 
 @app.on_event("startup")

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Command Center - AI Job Risk</title>
+
+    <script>
+        if (!localStorage.getItem('accessToken')) {
+            window.location.href = 'login.html';
+        }
+    </script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+        }
+
+        .admin-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            background: #fff;
+            margin-bottom: 20px;
+        }
+
+        .card-header-custom {
+            background: transparent;
+            border-bottom: 1px solid #f0f0f0;
+            padding: 1.5rem;
+        }
+
+        .console-window {
+            background-color: #1e1e1e;
+            color: #33ff00;
+            font-family: 'Courier New', monospace;
+            border-radius: 8px;
+            height: 600px;
+            /* Taller console */
+            overflow-y: auto;
+            padding: 15px;
+            font-size: 0.85rem;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .console-line {
+            margin-bottom: 4px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 2px;
+        }
+
+        .console-err {
+            color: #ff4444;
+        }
+
+        .console-warn {
+            color: #ffbb33;
+        }
+
+        .console-success {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        .step-arrow {
+            color: #adb5bd;
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar navbar-dark bg-dark shadow-sm">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="bi bi-shield-lock-fill me-2"></i>AI Job Killer <span class="text-secondary fw-light">|
+                    Admin</span>
+            </a>
+            <div class="d-flex">
+                <a href="analyzer.html" class="btn btn-outline-light btn-sm me-2" target="_blank">Open App</a>
+                <button class="btn btn-danger btn-sm" id="logout-btn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4 px-4">
+
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="admin-card p-4 border-primary border-start border-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="fw-bold mb-0">Blue/Green Data Deployment</h4>
+
+                        <div class="d-flex align-items-center bg-light p-2 rounded border">
+                            <label for="schema-name-input" class="fw-bold me-2 small text-muted text-uppercase">Target
+                                Schema:</label>
+                            <input type="text" id="schema-name-input"
+                                class="form-control form-control-sm border-0 bg-white" value="import_staging"
+                                style="width: 200px; font-family: monospace; font-weight: bold;">
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between px-3 mt-4">
+
+                        <div class="text-center">
+                            <button id="btn-init-staging" class="btn btn-primary btn-lg px-4 mb-2">
+                                <i class="bi bi-1-circle me-2"></i>Initialize Schema
+                            </button>
+                            <div class="small text-muted">Create empty tables</div>
+                        </div>
+
+                        <i class="bi bi-arrow-right step-arrow"></i>
+
+                        <div class="text-center opacity-50">
+                            <div class="fw-bold text-dark fs-5">Step 2: Load Data</div>
+                            <div class="small text-muted">Use controls below</div>
+                        </div>
+
+                        <i class="bi bi-arrow-right step-arrow"></i>
+
+                        <div class="text-center">
+                            <button id="btn-swap-live" class="btn btn-secondary btn-lg px-4 mb-2" disabled>
+                                <i class="bi bi-rocket-takeoff me-2"></i>Go Live (Swap)
+                            </button>
+                            <div class="small text-muted">Promote to Public</div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+
+            <div class="col-lg-7">
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="admin-card p-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-muted small">Current Staging</div>
+                                <div class="fw-bold text-secondary" id="staging-status-text">Not Initialized</div>
+                            </div>
+                            <i class="bi bi-box-seam fs-3 text-secondary" id="staging-icon"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="admin-card p-3 d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="text-muted small">Last Activity</div>
+                                <div class="fw-bold" id="last-update-time">--</div>
+                            </div>
+                            <i class="bi bi-clock-history fs-3 text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-card">
+                    <div class="card-header-custom d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold"><i class="bi bi-stack me-2"></i>Step 2: Load Data</h5>
+                        <small class="text-muted">Loads server CSVs into Target Schema</small>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="ps-4">Dataset Name</th>
+                                    <th>API Endpoint</th>
+                                    <th class="text-end pe-4">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="ps-4 fw-bold">1. Occupations</td>
+                                    <td class="text-muted small">/occupations/load</td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-outline-secondary upload-trigger"
+                                            data-type="occupation" disabled>
+                                            <i class="bi bi-cloud-upload"></i> Load
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4 fw-bold">2. Skills</td>
+                                    <td class="text-muted small">/skills/load</td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-outline-secondary upload-trigger"
+                                            data-type="skill" disabled>
+                                            <i class="bi bi-cloud-upload"></i> Load
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4 fw-bold">3. Skill Groups</td>
+                                    <td class="text-muted small">/skillgroups/load</td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-outline-secondary upload-trigger"
+                                            data-type="skill_group" disabled>
+                                            <i class="bi bi-cloud-upload"></i> Load
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4 fw-bold">4. Skill Hierarchy</td>
+                                    <td class="text-muted small">/skill-hierarchy/load</td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-outline-secondary upload-trigger"
+                                            data-type="skill_hierarchy" disabled>
+                                            <i class="bi bi-cloud-upload"></i> Load
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4 fw-bold">5. Relations</td>
+                                    <td class="text-muted small">/occupation-skill-relations/load</td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-outline-secondary upload-trigger"
+                                            data-type="relations" disabled>
+                                            <i class="bi bi-cloud-upload"></i> Load
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer bg-white p-3 text-center">
+                        <button class="btn btn-outline-primary btn-sm w-50" id="btn-load-all-staging" disabled>
+                            <i class="bi bi-collection-play me-2"></i>Bulk Load All into Staging
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="admin-card h-100">
+                    <div class="card-header-custom d-flex justify-content-between align-items-center py-2">
+                        <span class="fw-bold small text-uppercase"><i class="bi bi-terminal me-2"></i>System Logs</span>
+                        <button class="btn btn-xs btn-light py-0" id="clear-console">Clear</button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="console-output" class="console-window">
+                            <div class="console-line text-muted">// Admin Console Ready.</div>
+                            <div class="console-line text-muted">// Enter a schema name and click Initialize to start.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="admin.js"></script>
+
+</body>
+
+</html>
