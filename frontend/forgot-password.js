@@ -31,7 +31,7 @@ function setupAuthUI(buttonSelector, alertSelector) {
 // --- 3. PAGE LOGIC (This runs after the page loads) ---
 $(document).ready(function () {
 
-    const API_BASE_URL = window.APP_CONFIG.API_BASE_URL;
+
 
     // --- STATE ---
     let userEmail = '';
@@ -72,7 +72,7 @@ $(document).ready(function () {
         userEmail = email; // Store email for next step
 
         $.ajax({
-            url: `${API_BASE_URL}/auth/send-forgot-password-code`,
+            url: `${window.APP_CONFIG.API_BASE_URL}/auth/send-forgot-password-code`,
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({ email: email }),
@@ -125,7 +125,7 @@ $(document).ready(function () {
         resetUI.showLoading();
 
         $.ajax({
-            url: `${API_BASE_URL}/auth/reset-password`,
+            url: `${window.APP_CONFIG.API_BASE_URL}/auth/reset-password`,
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({

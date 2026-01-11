@@ -2,7 +2,7 @@
 
 $(document).ready(function () {
 
-    const API_BASE_URL = window.APP_CONFIG.API_BASE_URL;
+
 
     // --- STATE ---
     // We need to store the email from step 1 to use it in step 2
@@ -44,7 +44,7 @@ $(document).ready(function () {
 
         // 4. Make API call
         $.ajax({
-            url: `${API_BASE_URL}/auth/signup`,
+            url: `${window.APP_CONFIG.API_BASE_URL}/auth/signup`,
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
@@ -95,7 +95,7 @@ $(document).ready(function () {
 
         // 2. Make API call
         $.ajax({
-            url: `${API_BASE_URL}/auth/verify-email`,
+            url: `${window.APP_CONFIG.API_BASE_URL}/auth/verify-email`,
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
@@ -143,7 +143,7 @@ $(document).ready(function () {
         $resendLink.text('Sending...').css('pointer-events', 'none');
 
         $.ajax({
-            url: `${API_BASE_URL}/auth/resend-verification-code`,
+            url: `${window.APP_CONFIG.API_BASE_URL}/auth/resend-verification-code`,
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({ email: userEmail }),

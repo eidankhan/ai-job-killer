@@ -2,7 +2,7 @@
 
 $(document).ready(function () {
 
-    const API_BASE_URL = window.APP_CONFIG.API_BASE_URL;
+
 
     // --- SETUP ---
     // Initialize the UI helpers for this page
@@ -20,7 +20,7 @@ $(document).ready(function () {
 
         // 2. Make API call
         $.ajax({
-            url: `${API_BASE_URL}/auth/login`, // Using global config
+            url: `${window.APP_CONFIG.API_BASE_URL}/auth/login`, // Using global config
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({ email: email, password: password }),

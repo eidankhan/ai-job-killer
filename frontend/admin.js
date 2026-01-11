@@ -1,7 +1,7 @@
 $(document).ready(function () {
 
     // --- CONFIGURATION ---
-    const API_BASE_URL = window.APP_CONFIG.API_BASE_URL;
+
 
     // --- EXACT API MAPPINGS ---
     const ENDPOINTS = {
@@ -76,7 +76,7 @@ $(document).ready(function () {
         log(`🚀 STEP 1: Initializing Schema '${schemaName}'...`, 'warn');
 
         // Parameter name: 'schema_name' (matches admin_ops.py)
-        const url = `${API_BASE_URL}${ENDPOINTS.init}?schema_name=${schemaName}`;
+        const url = `${window.APP_CONFIG.API_BASE_URL}${ENDPOINTS.init}?schema_name=${schemaName}`;
 
         $.ajax({
             url: url,
@@ -126,7 +126,7 @@ $(document).ready(function () {
 
         // Parameter name: 'target_schema' (matches your Refactored Loaders)
         const endpoint = ENDPOINTS[type];
-        const url = `${API_BASE_URL}${endpoint}?target_schema=${schemaName}`;
+        const url = `${window.APP_CONFIG.API_BASE_URL}${endpoint}?target_schema=${schemaName}`;
 
         $.ajax({
             url: url,
@@ -156,7 +156,7 @@ $(document).ready(function () {
         $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Processing...');
         log(`🚀 STEP 2: Starting Bulk Load into '${schemaName}'...`, 'warn');
 
-        const url = `${API_BASE_URL}${ENDPOINTS.load_all}?target_schema=${schemaName}`;
+        const url = `${window.APP_CONFIG.API_BASE_URL}${ENDPOINTS.load_all}?target_schema=${schemaName}`;
 
         $.ajax({
             url: url,
@@ -189,7 +189,7 @@ $(document).ready(function () {
         log("🔄 STEP 3: Initiating Atomic Schema Swap...", 'warn');
 
         // Parameter name: 'staging_schema' (matches admin_ops.py)
-        const url = `${API_BASE_URL}${ENDPOINTS.swap}?staging_schema=${schemaName}`;
+        const url = `${window.APP_CONFIG.API_BASE_URL}${ENDPOINTS.swap}?staging_schema=${schemaName}`;
 
         $.ajax({
             url: url,

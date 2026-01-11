@@ -1,6 +1,6 @@
 $(document).ready(function () {
 
-    const API_BASE_URL = window.APP_CONFIG.API_BASE_URL;
+
 
 
     // --- MAIN APP MODULE ---
@@ -71,7 +71,7 @@ $(document).ready(function () {
             if (!authHeaders) return;
 
             $.ajax({
-                url: `${API_BASE_URL}/auth/me`,
+                url: `${window.APP_CONFIG.API_BASE_URL}/auth/me`,
                 type: 'GET',
                 headers: { 'Authorization': authHeaders.Authorization },
                 success: function (user) {
@@ -174,7 +174,7 @@ $(document).ready(function () {
             const authHeaders = this.getAuthHeaders();
             if (!authHeaders) return;
             try {
-                const res = await fetch(`${API_BASE_URL}/scoring/search?query=${encodeURIComponent(query)}`, {
+                const res = await fetch(`${window.APP_CONFIG.API_BASE_URL}/scoring/search?query=${encodeURIComponent(query)}`, {
                     method: 'GET',
                     headers: authHeaders
                 });
@@ -217,7 +217,7 @@ $(document).ready(function () {
             if (!authHeaders) return;
 
             try {
-                const apiUrl = `${API_BASE_URL}/scoring/occupation?name=${encodeURIComponent(jobTitle)}`;
+                const apiUrl = `${window.APP_CONFIG.API_BASE_URL}/scoring/occupation?name=${encodeURIComponent(jobTitle)}`;
                 const response = await fetch(apiUrl, {
                     method: 'GET',
                     headers: authHeaders
